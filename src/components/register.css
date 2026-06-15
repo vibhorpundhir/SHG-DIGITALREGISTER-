@@ -1,0 +1,293 @@
+/* ═══════════════════════════════════════════════════════════
+   SHG Register Table (Excel Matched Theme)
+   ═══════════════════════════════════════════════════════════ */
+
+.register-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: var(--bg-card);
+  padding: 24px;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border-light);
+  min-height: calc(100vh - 40px);
+  animation: fadeIn 0.4s ease-out;
+}
+
+/* ─── Actions ────────────────────────────────────────── */
+.reg-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+/* ─── Header Inputs ──────────────────────────────────── */
+.reg-header {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  background: #f8fafc;
+  padding: 16px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-light);
+}
+.reg-header label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.reg-header input,
+.reg-header select {
+  width: 140px;
+  background: #fff;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.reg-header input[readonly] {
+  background: #f1f5f9;
+  color: var(--text-secondary);
+  border-color: transparent;
+}
+
+/* ─── Main Table ─────────────────────────────────────── */
+table.reg {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  table-layout: fixed;
+  box-shadow: 0 0 0 1px var(--border-color);
+  background: #fff;
+}
+
+/* Base Cells */
+table.reg th,
+table.reg td {
+  border: 1px solid var(--border-color);
+  padding: 6px;
+  text-align: center;
+  vertical-align: middle;
+}
+
+table.reg td input,
+table.reg td select {
+  width: 100%;
+  height: 28px;
+  padding: 0 4px;
+  border: 1px solid transparent;
+  background: transparent;
+  text-align: center;
+  color: var(--text-primary);
+  font-weight: 500;
+  border-radius: 4px;
+}
+
+table.reg td input:focus,
+table.reg td select:focus {
+  background: #fff;
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 2px var(--accent-blue-glow);
+  outline: none;
+}
+
+/* Name Column Alignment */
+table.reg td.name input {
+  text-align: left;
+  padding-left: 8px;
+  font-weight: 600;
+}
+
+/* ─── Headers (Excel Color Mapping) ──────────────────── */
+table.reg thead th {
+  font-weight: 700;
+  color: #000;
+  font-size: 11.5px;
+}
+
+/* Generic Header Default */
+table.reg thead tr:first-child th { background: #f1f5f9; }
+
+/* Specific Column Colors from Screenshot */
+/* SHG ID (Yellow) */
+table.reg thead th.col-shg-id { background: var(--excel-yellow); }
+/* Month (Blue) */
+table.reg thead th.col-month { background: var(--excel-blue); color: #fff; font-size: 14px; }
+/* Meeting Date (Peach/Orange) */
+table.reg thead th.col-meeting-date { background: #fdba74; }
+/* SHG Loan Recovery (Green) */
+table.reg thead th.col-shg-recovery { background: #86efac; }
+/* Bank/PMC Loan Recovery (Light Peach) */
+table.reg thead th.col-bank-recovery { background: #fed7aa; }
+/* Loan Distribution (Cyan/Light Blue) */
+table.reg thead th.col-loan-dist { background: #a5f3fc; }
+/* Talpat (Yellow) */
+table.reg thead th.col-talpat { background: var(--excel-yellow); }
+
+/* Sub-header row backgrounds */
+table.reg thead tr.sub-header-row th {
+  background: #f8fafc;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+/* ─── Table Body ─────────────────────────────────────── */
+table.reg tbody tr {
+  transition: background 0.1s;
+}
+table.reg tbody tr:nth-child(even) { background: #f8fafc; }
+table.reg tbody tr:hover { background: #e0f2fe; }
+
+/* Delete Button */
+.row-del {
+  background: transparent;
+  color: var(--text-muted);
+  border: none;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+}
+.row-del:hover { background: #fee2e2; color: var(--accent-red); }
+
+/* ─── Footer (Totals) ────────────────────────────────── */
+table.reg tfoot td {
+  background: var(--excel-green);
+  color: #000;
+  font-weight: 800;
+  font-size: 13px;
+  border-top: 2px solid #000;
+}
+
+/* ─── Meeting Transaction & Talpat Section ───────────── */
+.summary-wrap {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-top: 10px;
+}
+@media (max-width: 1000px) {
+  .summary-wrap { grid-template-columns: 1fr; }
+}
+
+table.summary {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  box-shadow: 0 0 0 1px var(--border-color);
+  background: #fff;
+}
+
+table.summary th,
+table.summary td {
+  border: 1px solid var(--border-color);
+  padding: 6px 10px;
+  vertical-align: middle;
+}
+
+/* Headers */
+table.summary thead th {
+  background: var(--excel-blue);
+  color: #fff;
+  font-weight: 700;
+  text-align: center;
+}
+table.summary thead th.talpat-header { background: var(--excel-yellow); color: #000; }
+
+table.summary thead tr:last-child th {
+  background: #f8fafc;
+  color: var(--text-primary);
+  border-bottom: 2px solid var(--border-color);
+}
+
+/* Labels & Values */
+table.summary td.label {
+  text-align: right;
+  color: var(--text-primary);
+  font-weight: 600;
+  background: #f8fafc;
+}
+table.summary td.amount {
+  text-align: right;
+  padding: 0;
+}
+table.summary td.amount input {
+  width: 100%;
+  height: 28px;
+  border: none;
+  text-align: right;
+  padding: 0 10px;
+  font-weight: 600;
+  color: var(--text-primary);
+  background: transparent;
+}
+table.summary td.amount input:focus {
+  background: #fff;
+  box-shadow: inset 0 0 0 2px var(--accent-blue);
+}
+table.summary td.amount input.computed {
+  background: #f1f5f9;
+  color: var(--accent-blue);
+}
+
+/* Summary Totals */
+table.summary tr.total td.label {
+  background: #fff;
+  font-weight: 800;
+}
+table.summary tr.total td.amount {
+  background: var(--excel-green);
+  color: #000;
+  font-weight: 800;
+  font-size: 13px;
+  padding: 0 10px;
+  text-align: right;
+}
+
+/* Sub-headers inside Summary (e.g. Saving =, SHG Loan =) */
+table.summary th .th-val {
+  margin-left: 8px;
+  font-weight: 800;
+  color: #fff;
+}
+table.summary th.talpat-header .th-val { color: var(--accent-blue); }
+
+/* Closing Cash Bar */
+.closing-cash {
+  margin-top: 16px;
+  padding: 16px 24px;
+  background: #f8fafc;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 16px;
+  font-size: 16px;
+  font-weight: 700;
+}
+.closing-cash .val {
+  font-size: 20px;
+  color: var(--accent-blue);
+  background: #fff;
+  padding: 6px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Print Overrides */
+@media print {
+  .reg-actions, .btn { display: none !important; }
+  .register-page { box-shadow: none; border: none; padding: 0; }
+  table.reg, table.summary { border: 1px solid #000; }
+  table.reg th, table.reg td, table.summary th, table.summary td { border: 1px solid #000; }
+  table.reg td input, table.summary td.amount input { color: #000; font-weight: bold; }
+}
