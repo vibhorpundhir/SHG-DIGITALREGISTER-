@@ -1,11 +1,11 @@
 import { Link } from "@tanstack/react-router";
 import { getCurrentUser, isLoggedIn } from "@/lib/auth";
 import {
-  loadGPs,
-  loadVillages,
-  loadSHGs,
-  loadMembers,
-  loadSavedRegisters,
+  useGPs,
+  useVillages,
+  useSHGs,
+  useMembers,
+  useRegisters,
   formatMonthHindi,
   getCurrentMonth,
 } from "@/lib/store";
@@ -136,13 +136,18 @@ function PublicHomepage() {
 /** Dashboard homepage — shown when logged in */
 function DashboardHomepage() {
   const user = getCurrentUser();
-  const gps = loadGPs();
-  const villages = loadVillages();
-  const shgs = loadSHGs();
-  const members = loadMembers();
-  const registers = loadSavedRegisters();
+  const { data: gps = [], isLoading: loadingGPs } = useGPs();
+  const { data: villages = [], isLoading: loadingVillages } = useVillages();
+  const { data: shgs = [], isLoading: loadingSHGs } = useSHGs();
+  const { data: members = [], isLoading: loadingMembers } = useMembers();
+  const { data: registers = [], isLoading: loadingRegisters } = useRegisters();
+  
   const currentMonth = getCurrentMonth();
   const currentMonthLabel = formatMonthHindi(currentMonth);
+
+  if (loadingGPs || loadingVillages || loadingSHGs || loadingMembers || loadingRegisters) {
+    return <div className="p-8 text-center">लोड हो रहा है...</div>;
+  }
 
   const thisMonthRegisters = registers.filter((r) => r.month === currentMonth);
 
@@ -267,7 +272,7 @@ function DashboardHomepage() {
       {/* ─── Two-Column: About + System Info ─── */}
       <div className="home-two-col">
         <div className="home-about-card">
-          <h2 className="home-section-title">🏢 SPECTRA के बारे में</h2>
+          <h2 className="home-section-title">🏢 SPECTRA के बारे बारे में</h2>
           <p>
             <span className="highlight">SPECTRA</span> (Society for Public Education Cultural Training and Rural Action)
             अलवर, राजस्थान में स्थित एक प्रमुख गैर-सरकारी संगठन है जो{" "}

@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { findSHG, findVillage, findGP, getSHGReport, getSHGSavingsTimeline, getSHGLoanTimeline, getMembersBySHG, getRegistersBySHG, formatMonthHindi } from "@/lib/store";
+import { useSHGs, useVillages, useGPs, useMembers, useRegisters, getSHGReport, getSHGSavingsTimeline, getSHGLoanTimeline, formatMonthHindi } from "@/lib/store";
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import "../components/shg-dashboard.css";
 
@@ -20,14 +20,25 @@ function SHGDashboardPage() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<"overview" | "meetings" | "members" | "talpat">("overview");
 
-  const shg = useMemo(() => (id ? findSHG(id) : null), [id]);
-  const village = useMemo(() => (shg ? findVillage(shg.villageId) : null), [shg]);
-  const gp = useMemo(() => (shg ? findGP(shg.gpId) : null), [shg]);
-  const report = useMemo(() => (shg ? getSHGReport(shg.name) : null), [shg]);
-  const savingsTimeline = useMemo(() => (shg ? getSHGSavingsTimeline(shg.name) : []), [shg]);
-  const loanTimeline = useMemo(() => (shg ? getSHGLoanTimeline(shg.name) : []), [shg]);
-  const members = useMemo(() => (shg ? getMembersBySHG(shg.id) : []), [shg]);
-  const registers = useMemo(() => (shg ? getRegistersBySHG(shg.name) : []), [shg]);
+  const { data: allShgs = [], isLoading: loadingSHGs } = useSHGs();
+  const { data: allVillages = [], isLoading: loadingVillages } = useVillages();
+  const { data: allGps = [], isLoading: loadingGPs } = useGPs();
+  const { data: allMembers = [], isLoading: loadingMembers } = useMembers();
+  const { data: allRegisters = [], isLoading: loadingRegisters } = useRegisters();
+
+  const shg = useMemo(() => (id ? allShgs.find(s => s.id === id) : null), [id, allShgs]);
+  const village = useMemo(() => (shg ? allVillages.find(v => v.id === shg.villageId) : null), [shg, allVillages]);
+  const gp = useMemo(() => (shg ? allGps.find(g => g.id === shg.gpId) : null), [shg, allGps]);
+  const members = useMemo(() => (shg ? allMembers.filter(m => m.shgId === shg.id) : []), [shg, allMembers]);
+  const registers = useMemo(() => (shg ? allRegisters.filter(r => r.header.shgName === shg.name) : []), [shg, allRegisters]);
+
+  const report = useMemo(() => (shg ? getSHGReport(registers) : null), [shg, registers]);
+  const savingsTimeline = useMemo(() => (shg ? getSHGSavingsTimeline(registers) : []), [shg, registers]);
+  const loanTimeline = useMemo(() => (shg ? getSHGLoanTimeline(registers) : []), [shg, registers]);
+
+  if (loadingSHGs || loadingVillages || loadingGPs || loadingMembers || loadingRegisters) {
+    return <div className="p-8 text-center">लोड हो रहा है...</div>;
+  }
 
   if (!shg) {
     return (

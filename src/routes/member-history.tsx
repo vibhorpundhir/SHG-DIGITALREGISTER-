@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo } from "react";
-import { findMember, findSHG, findVillage, findGP, getMemberHistory, getMemberReport, formatMonthHindi } from "@/lib/store";
+import { useMembers, useSHGs, useVillages, useGPs, useRegisters, getMemberHistory, getMemberReport, formatMonthHindi } from "@/lib/store";
 import "../components/master-data.css";
 
 type SearchParams = { id?: string };
@@ -15,12 +15,25 @@ const fmt = (v: number) => (v ? v.toLocaleString("en-IN") : "—");
 
 function MemberHistoryPage() {
   const { id } = Route.useSearch();
-  const member = useMemo(() => (id ? findMember(id) : undefined), [id]);
-  const shg = useMemo(() => (member ? findSHG(member.shgId) : undefined), [member]);
-  const village = useMemo(() => (member ? findVillage(member.villageId) : undefined), [member]);
-  const gp = useMemo(() => (member ? findGP(member.gpId) : undefined), [member]);
-  const transactions = useMemo(() => (member && shg ? getMemberHistory(member.name, shg.name) : []), [member, shg]);
-  const report = useMemo(() => (member && shg ? getMemberReport(member.name, shg.name) : null), [member, shg]);
+  const { data: allMembers = [], isLoading: loadingMembers } = useMembers();
+  const { data: allShgs = [], isLoading: loadingSHGs } = useSHGs();
+  const { data: allVillages = [], isLoading: loadingVillages } = useVillages();
+  const { data: allGps = [], isLoading: loadingGPs } = useGPs();
+  const { data: allRegisters = [], isLoading: loadingRegisters } = useRegisters();
+
+  const member = useMemo(() => (id ? allMembers.find(m => m.id === id) : undefined), [id, allMembers]);
+  const shg = useMemo(() => (member ? allShgs.find(s => s.id === member.shgId) : undefined), [member, allShgs]);
+  const village = useMemo(() => (member ? allVillages.find(v => v.id === member.villageId) : undefined), [member, allVillages]);
+  const gp = useMemo(() => (member ? allGps.find(g => g.id === member.gpId) : undefined), [member, allGps]);
+  
+  const registers = useMemo(() => (shg ? allRegisters.filter(r => r.header.shgName === shg.name) : []), [shg, allRegisters]);
+
+  const transactions = useMemo(() => (member && shg ? getMemberHistory(registers, member.name) : []), [member, shg, registers]);
+  const report = useMemo(() => (member && shg ? getMemberReport(registers, member.name) : null), [member, shg, registers]);
+
+  if (loadingMembers || loadingSHGs || loadingVillages || loadingGPs || loadingRegisters) {
+    return <div className="p-8 text-center">लोड हो रहा है...</div>;
+  }
 
   if (!member) {
     return (

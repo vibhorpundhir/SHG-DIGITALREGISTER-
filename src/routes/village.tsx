@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
-import { loadVillages, saveVillage, deleteVillage, loadGPs, findGP, type Village, type GramPanchayat } from "@/lib/store";
+import { useVillages, useGPs, api, type Village, type GramPanchayat } from "@/lib/store";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import "../components/master-data.css";
 
 export const Route = createFileRoute("/village")({
@@ -9,8 +10,22 @@ export const Route = createFileRoute("/village")({
 });
 
 function VillagePage() {
-  const [villages, setVillages] = useState<Village[]>(() => loadVillages());
-  const [gps] = useState<GramPanchayat[]>(() => loadGPs());
+  const { data: villages = [], isLoading: loadingVillages } = useVillages();
+  const { data: gps = [], isLoading: loadingGPs } = useGPs();
+  const queryClient = useQueryClient();
+
+  const saveMutation = useMutation({
+    mutationFn: api.saveVillage,
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["villages"] }); },
+    onError: (err) => alert("सेव करने में त्रुटि: " + err.message)
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: api.deleteVillage,
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["villages"] }); },
+    onError: (err) => alert("हटाने में त्रुटि: " + err.message)
+  });
+
   const [search, setSearch] = useState("");
   const [modal, setModal] = useState<null | "add" | "edit">(null);
   const [selected, setSelected] = useState<Village | null>(null);
@@ -22,18 +37,23 @@ function VillagePage() {
     return villages.filter((v) => v.name.toLowerCase().includes(s));
   }, [villages, search]);
 
-  const reload = () => setVillages(loadVillages());
-
   const openAdd = () => { setForm({ name: "", code: "", gpId: "" }); setSelected(null); setModal("add"); };
   const openEdit = (v: Village) => { setForm({ name: v.name, code: v.code, gpId: v.gpId }); setSelected(v); setModal("edit"); };
 
   const handleSave = () => {
     if (!form.name.trim()) return alert("कृपया नाम भरें");
-    saveVillage({ id: selected?.id || crypto.randomUUID(), name: form.name.trim(), code: form.code.trim(), gpId: form.gpId });
-    reload(); setModal(null);
+    const village = { id: selected?.id || crypto.randomUUID(), name: form.name.trim(), code: form.code.trim(), gpId: form.gpId };
+    saveMutation.mutate(village);
+    setModal(null);
   };
 
-  const handleDelete = (id: string) => { if (confirm("हटाएं?")) { deleteVillage(id); reload(); } };
+  const handleDelete = (id: string) => { 
+    if (confirm("हटाएं?")) { 
+      deleteMutation.mutate(id); 
+    } 
+  };
+
+  if (loadingVillages || loadingGPs) return <div className="p-8 text-center">लोड हो रहा है...</div>;
 
   return (
     <div className="master-page">
@@ -53,10 +73,12 @@ function VillagePage() {
                 <tr key={v.id}>
                   <td><strong>{v.name}</strong></td>
                   <td>{v.code || "—"}</td>
-                  <td>{findGP(v.gpId)?.name || "—"}</td>
+                  <td>{gps.find(g => g.id === v.gpId)?.name || "—"}</td>
                   <td className="actions">
                     <button className="btn btn-secondary btn-sm" onClick={() => openEdit(v)}>✏️</button>
-                    <button className="btn btn-danger btn-sm" onClick={() => handleDelete(v.id)}>🗑️</button>
+                    <button className="btn btn-danger btn-sm" onClick={() => handleDelete(v.id)} disabled={deleteMutation.isPending}>
+                      {deleteMutation.isPending ? "⏳" : "🗑️"}
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -81,7 +103,9 @@ function VillagePage() {
             </div>
             <div className="modal-footer">
               <button className="btn btn-secondary" onClick={() => setModal(null)}>रद्द करें</button>
-              <button className="btn btn-primary" onClick={handleSave}>सुरक्षित करें</button>
+              <button className="btn btn-primary" onClick={handleSave} disabled={saveMutation.isPending}>
+                {saveMutation.isPending ? "सुरक्षित हो रहा है..." : "सुरक्षित करें"}
+              </button>
             </div>
           </div>
         </div>

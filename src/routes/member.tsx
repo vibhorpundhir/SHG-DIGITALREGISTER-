@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
-import { loadMembers, saveMember, deleteMember, loadSHGs, loadVillages, loadGPs, type Member } from "@/lib/store";
+import { useMembers, useSHGs, useVillages, useGPs, api, type Member } from "@/lib/store";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import "../components/master-data.css";
 
 export const Route = createFileRoute("/member")({
@@ -10,10 +11,23 @@ export const Route = createFileRoute("/member")({
 
 function MemberPage() {
   const navigate = useNavigate();
-  const [members, setMembers] = useState<Member[]>(() => loadMembers());
-  const [shgs] = useState(() => loadSHGs());
-  const [villages] = useState(() => loadVillages());
-  const [gps] = useState(() => loadGPs());
+  const { data: members = [], isLoading: loadingMembers } = useMembers();
+  const { data: shgs = [], isLoading: loadingSHGs } = useSHGs();
+  const { data: villages = [], isLoading: loadingVillages } = useVillages();
+  const { data: gps = [], isLoading: loadingGPs } = useGPs();
+  
+  const queryClient = useQueryClient();
+  const saveMutation = useMutation({
+    mutationFn: api.saveMember,
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["members"] }); },
+    onError: (err) => alert("सेव करने में त्रुटि: " + err.message)
+  });
+  const deleteMutation = useMutation({
+    mutationFn: api.deleteMember,
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["members"] }); },
+    onError: (err) => alert("हटाने में त्रुटि: " + err.message)
+  });
+
   const [search, setSearch] = useState("");
   const [filterSHG, setFilterSHG] = useState("");
   const [modal, setModal] = useState<null | "add" | "edit">(null);
@@ -30,18 +44,23 @@ function MemberPage() {
   const shgMap = useMemo(() => new Map(shgs.map((s) => [s.id, s])), [shgs]);
   const villageMap = useMemo(() => new Map(villages.map((v) => [v.id, v])), [villages]);
 
-  const reload = () => setMembers(loadMembers());
-
   const openAdd = () => { setForm({ name: "", fatherHusbandName: "", mobile: "", address: "", villageId: "", gpId: "", shgId: "", joiningDate: "" }); setSelected(null); setModal("add"); };
   const openEdit = (m: Member) => { setForm({ name: m.name, fatherHusbandName: m.fatherHusbandName, mobile: m.mobile, address: m.address, villageId: m.villageId, gpId: m.gpId, shgId: m.shgId, joiningDate: m.joiningDate }); setSelected(m); setModal("edit"); };
 
   const handleSave = () => {
     if (!form.name.trim()) return alert("कृपया नाम भरें");
-    saveMember({ id: selected?.id || crypto.randomUUID(), ...form, name: form.name.trim() });
-    reload(); setModal(null);
+    const member = { id: selected?.id || crypto.randomUUID(), ...form, name: form.name.trim() };
+    saveMutation.mutate(member);
+    setModal(null);
   };
 
-  const handleDelete = (id: string) => { if (confirm("हटाएं?")) { deleteMember(id); reload(); } };
+  const handleDelete = (id: string) => { 
+    if (confirm("हटाएं?")) { 
+      deleteMutation.mutate(id); 
+    } 
+  };
+
+  if (loadingMembers || loadingSHGs || loadingVillages || loadingGPs) return <div className="p-8 text-center">लोड हो रहा है...</div>;
 
   return (
     <div className="master-page">
@@ -77,7 +96,9 @@ function MemberPage() {
                   <td className="actions">
                     <button className="btn btn-primary btn-sm" onClick={() => navigate({ to: "/member-talpat", search: { id: m.id } })}>📊</button>
                     <button className="btn btn-secondary btn-sm" onClick={() => openEdit(m)}>✏️</button>
-                    <button className="btn btn-danger btn-sm" onClick={() => handleDelete(m.id)}>🗑️</button>
+                    <button className="btn btn-danger btn-sm" onClick={() => handleDelete(m.id)} disabled={deleteMutation.isPending}>
+                      {deleteMutation.isPending ? "⏳" : "🗑️"}
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -121,7 +142,9 @@ function MemberPage() {
             </div>
             <div className="modal-footer">
               <button className="btn btn-secondary" onClick={() => setModal(null)}>रद्द करें</button>
-              <button className="btn btn-primary" onClick={handleSave}>सुरक्षित करें</button>
+              <button className="btn btn-primary" onClick={handleSave} disabled={saveMutation.isPending}>
+                {saveMutation.isPending ? "सुरक्षित हो रहा है..." : "सुरक्षित करें"}
+              </button>
             </div>
           </div>
         </div>

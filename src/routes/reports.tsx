@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { loadSHGs, loadMembers, loadVillages, getSHGReport, getMemberReport } from "@/lib/store";
+import { useSHGs, useMembers, useVillages, useRegisters, getSHGReport, getMemberReport } from "@/lib/store";
 import "../components/master-data.css";
 
 export const Route = createFileRoute("/reports")({
@@ -12,33 +12,39 @@ const fmt = (v: number) => (v ? `₹${v.toLocaleString("en-IN")}` : "—");
 
 function ReportsPage() {
   const [tab, setTab] = useState<"shg" | "members">("shg");
-  const shgs = useMemo(() => loadSHGs(), []);
-  const members = useMemo(() => loadMembers(), []);
+  const { data: shgs = [], isLoading: loadingSHGs } = useSHGs();
+  const { data: members = [], isLoading: loadingMembers } = useMembers();
+  const { data: villages = [], isLoading: loadingVillages } = useVillages();
+  const { data: registers = [], isLoading: loadingRegisters } = useRegisters();
+  
   const [filterSHG, setFilterSHG] = useState("");
 
-  // Build lookup maps ONCE instead of calling find per row
   const shgMap = useMemo(() => new Map(shgs.map((s) => [s.id, s])), [shgs]);
-  const villageMap = useMemo(() => new Map(loadVillages().map((v) => [v.id, v])), []);
+  const villageMap = useMemo(() => new Map(villages.map((v) => [v.id, v])), [villages]);
 
   const shgReports = useMemo(() => {
     return shgs.map((s) => {
-      const report = getSHGReport(s.name);
+      const shgRegisters = registers.filter((r) => r.header.shgName === s.name);
+      const report = getSHGReport(shgRegisters);
       const village = villageMap.get(s.villageId);
       return { ...s, villageName: village?.name || "—", ...report };
     });
-  }, [shgs, villageMap]);
+  }, [shgs, villageMap, registers]);
 
-  // Only compute member reports when the members tab is active (deferred)
   const memberReports = useMemo(() => {
     if (tab !== "members") return [];
     let list = members;
     if (filterSHG) list = list.filter((m) => m.shgId === filterSHG);
     return list.map((m) => {
       const shg = shgMap.get(m.shgId);
-      const report = getMemberReport(m.name, shg?.name);
+      const report = getMemberReport(registers, m.name);
       return { ...m, shgName: shg?.name || "—", report };
     });
-  }, [members, filterSHG, tab, shgMap]);
+  }, [members, filterSHG, tab, shgMap, registers]);
+
+  if (loadingSHGs || loadingMembers || loadingVillages || loadingRegisters) {
+    return <div className="p-8 text-center">लोड हो रहा है...</div>;
+  }
 
   return (
     <div className="master-page">

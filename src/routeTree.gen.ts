@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as VillageRouteImport } from './routes/village'
+import { Route as TestConnectionRouteImport } from './routes/test-connection'
 import { Route as ShgDashboardRouteImport } from './routes/shg-dashboard'
 import { Route as ShgRouteImport } from './routes/shg'
 import { Route as ReportsRouteImport } from './routes/reports'
@@ -24,6 +25,11 @@ import { Route as IndexRouteImport } from './routes/index'
 const VillageRoute = VillageRouteImport.update({
   id: '/village',
   path: '/village',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TestConnectionRoute = TestConnectionRouteImport.update({
+  id: '/test-connection',
+  path: '/test-connection',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ShgDashboardRoute = ShgDashboardRouteImport.update({
@@ -88,6 +94,7 @@ export interface FileRoutesByFullPath {
   '/reports': typeof ReportsRoute
   '/shg': typeof ShgRoute
   '/shg-dashboard': typeof ShgDashboardRoute
+  '/test-connection': typeof TestConnectionRoute
   '/village': typeof VillageRoute
 }
 export interface FileRoutesByTo {
@@ -101,6 +108,7 @@ export interface FileRoutesByTo {
   '/reports': typeof ReportsRoute
   '/shg': typeof ShgRoute
   '/shg-dashboard': typeof ShgDashboardRoute
+  '/test-connection': typeof TestConnectionRoute
   '/village': typeof VillageRoute
 }
 export interface FileRoutesById {
@@ -115,6 +123,7 @@ export interface FileRoutesById {
   '/reports': typeof ReportsRoute
   '/shg': typeof ShgRoute
   '/shg-dashboard': typeof ShgDashboardRoute
+  '/test-connection': typeof TestConnectionRoute
   '/village': typeof VillageRoute
 }
 export interface FileRouteTypes {
@@ -130,6 +139,7 @@ export interface FileRouteTypes {
     | '/reports'
     | '/shg'
     | '/shg-dashboard'
+    | '/test-connection'
     | '/village'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -143,6 +153,7 @@ export interface FileRouteTypes {
     | '/reports'
     | '/shg'
     | '/shg-dashboard'
+    | '/test-connection'
     | '/village'
   id:
     | '__root__'
@@ -156,6 +167,7 @@ export interface FileRouteTypes {
     | '/reports'
     | '/shg'
     | '/shg-dashboard'
+    | '/test-connection'
     | '/village'
   fileRoutesById: FileRoutesById
 }
@@ -170,6 +182,7 @@ export interface RootRouteChildren {
   ReportsRoute: typeof ReportsRoute
   ShgRoute: typeof ShgRoute
   ShgDashboardRoute: typeof ShgDashboardRoute
+  TestConnectionRoute: typeof TestConnectionRoute
   VillageRoute: typeof VillageRoute
 }
 
@@ -180,6 +193,13 @@ declare module '@tanstack/react-router' {
       path: '/village'
       fullPath: '/village'
       preLoaderRoute: typeof VillageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/test-connection': {
+      id: '/test-connection'
+      path: '/test-connection'
+      fullPath: '/test-connection'
+      preLoaderRoute: typeof TestConnectionRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/shg-dashboard': {
@@ -266,18 +286,9 @@ const rootRouteChildren: RootRouteChildren = {
   ReportsRoute: ReportsRoute,
   ShgRoute: ShgRoute,
   ShgDashboardRoute: ShgDashboardRoute,
+  TestConnectionRoute: TestConnectionRoute,
   VillageRoute: VillageRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

@@ -1,19 +1,19 @@
 import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import {
-  loadSHGs,
-  getMembersBySHG,
-  findVillage,
-  findGP,
+  useSHGs,
+  useMembers,
+  useVillages,
+  useGPs,
+  useRegisters,
+  api,
   getCurrentMonth,
   getPreviousMonthData,
-  formatMonthEnglish,
-  getSHGMonths,
-  loadSavedRegisters,
-  saveRegister,
+  formatMonthHindi,
   getMemberReport,
   type SavedRegister,
   type CarryForwardData,
 } from "@/lib/store";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { getRouteApi } from "@tanstack/react-router";
 import "./register.css";
 import { RegisterManager } from "./RegisterManager";
@@ -234,22 +234,38 @@ export function SHGRegister() {
   const [view, setView] = useState<"register" | "manager">("register");
   const printRef = useRef<HTMLDivElement>(null);
 
-  // SHG selection
-  const shgs = useMemo(() => loadSHGs(), []);
-  const savedMonths = useMemo(() => (state.header.shgName ? getSHGMonths(state.header.shgName) : []), [state.header.shgName]);
+  const { data: shgs = [], isLoading: loadingSHGs } = useSHGs();
+  const { data: villages = [] } = useVillages();
+  const { data: gps = [] } = useGPs();
+  const { data: allMembers = [] } = useMembers();
+  const { data: registers = [] } = useRegisters();
+  
+  const queryClient = useQueryClient();
+  const saveMutation = useMutation({
+    mutationFn: api.saveRegister,
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["registers"] }); },
+    onError: (err) => alert("सेव करने में त्रुटि: " + err.message)
+  });
+
+  const savedMonths = useMemo(() => {
+    if (!state.header.shgName) return [];
+    const shgRegs = registers.filter(r => r.header.shgName === state.header.shgName);
+    const months = new Set(shgRegs.map(r => r.month));
+    return Array.from(months).sort((a, b) => b.localeCompare(a));
+  }, [state.header.shgName, registers]);
 
   // When SHG changes, load members and carry-forward data
   const handleSHGChange = (shgId: string) => {
     const shg = shgs.find((s) => s.id === shgId);
     if (!shg) return;
-    const village = findVillage(shg.villageId);
-    const gp = findGP(shg.gpId);
-    const members = getMembersBySHG(shg.id);
+    const village = villages.find(v => v.id === shg.villageId);
+    const gp = gps.find(g => g.id === shg.gpId);
+    const members = allMembers.filter(m => m.shgId === shg.id);
     const month = getCurrentMonth();
-    const prev = getPreviousMonthData(shg.name, month);
+    const prev = getPreviousMonthData(registers, month);
 
     const memberRows: MemberRow[] = members.map((m) => {
-      const report = getMemberReport(m.name, shg.name);
+      const report = getMemberReport(registers, m.name);
       return {
         ...emptyMember(),
         id: m.id,
@@ -271,7 +287,7 @@ export function SHGRegister() {
       village: village?.name || "",
       gramPanchayat: gp?.name || "",
       month,
-      monthLabel: `Month ${formatMonthEnglish(month)}`,
+      monthLabel: `Month ${formatMonthHindi(month)}`,
     };
     newState.members = memberRows;
     newState.openingCash = prev.openingCash || "";
@@ -385,6 +401,7 @@ export function SHGRegister() {
   const isComputedTalpatIncome = (i: number) => [0, 1, 2].includes(i);
   const isComputedTalpatExpense = (i: number) => [7].includes(i);
 
+  const cashExpenseTotal = useMemo(() => finalCashExpense.reduce((s, c) => s + n(c.amount), 0), [finalCashExpense]);
   const talpatIncomeTotal = useMemo(() => computedTalpatIncome.reduce((s, c) => s + n(c.amount), 0), [computedTalpatIncome]);
   const talpatExpenseTotal = useMemo(() => finalTalpatExpense.reduce((s, c) => s + n(c.amount), 0), [finalTalpatExpense]);
 
@@ -409,8 +426,9 @@ export function SHGRegister() {
       talpatExpense: computedTalpatExpense,
       openingCash: state.openingCash,
     };
-    saveRegister(reg);
-    alert("✅ रजिस्टर सफलतापूर्वक सुरक्षित हो गया!");
+    saveMutation.mutate(reg, {
+      onSuccess: () => alert("✅ रजिस्टर सफलतापूर्वक सुरक्षित हो गया!")
+    });
   };
 
   // ─── Keyboard Navigation ──────────────────────────────────────
@@ -716,11 +734,11 @@ export function SHGRegister() {
             पिछला डेटा लोड करें
             <select onChange={(e) => {
               if (!e.target.value) return;
-              const regs = loadSavedRegisters().filter((r) => r.header.shgName === state.header.shgName && r.month === e.target.value);
+              const regs = registers.filter((r) => r.header.shgName === state.header.shgName && r.month === e.target.value);
               if (regs.length > 0) handleLoadRegister(regs[regs.length - 1]);
             }}>
               <option value="">— चुनें —</option>
-              {savedMonths.map((m) => <option key={m} value={m}>{formatMonthEnglish(m)}</option>)}
+              {savedMonths.map((m) => <option key={m} value={m}>{formatMonthHindi(m)}</option>)}
             </select>
           </label>
         )}

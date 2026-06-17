@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
-import { loadSHGs, saveSHG, deleteSHG, loadVillages, loadGPs, findVillage, findGP, type SHG } from "@/lib/store";
+import { useSHGs, useVillages, useGPs, api, type SHG } from "@/lib/store";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import "../components/master-data.css";
 
 export const Route = createFileRoute("/shg")({
@@ -10,9 +11,22 @@ export const Route = createFileRoute("/shg")({
 
 function SHGPage() {
   const navigate = useNavigate();
-  const [shgs, setShgs] = useState<SHG[]>(() => loadSHGs());
-  const [villages] = useState(() => loadVillages());
-  const [gps] = useState(() => loadGPs());
+  const { data: shgs = [], isLoading: loadingSHGs } = useSHGs();
+  const { data: villages = [], isLoading: loadingVillages } = useVillages();
+  const { data: gps = [], isLoading: loadingGPs } = useGPs();
+  
+  const queryClient = useQueryClient();
+  const saveMutation = useMutation({
+    mutationFn: api.saveSHG,
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["shgs"] }); },
+    onError: (err) => alert("सेव करने में त्रुटि: " + err.message)
+  });
+  const deleteMutation = useMutation({
+    mutationFn: api.deleteSHG,
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["shgs"] }); },
+    onError: (err) => alert("हटाने में त्रुटि: " + err.message)
+  });
+
   const [search, setSearch] = useState("");
   const [modal, setModal] = useState<null | "add" | "edit">(null);
   const [selected, setSelected] = useState<SHG | null>(null);
@@ -24,18 +38,23 @@ function SHGPage() {
     return shgs.filter((g) => g.name.toLowerCase().includes(s) || g.shgId.toLowerCase().includes(s));
   }, [shgs, search]);
 
-  const reload = () => setShgs(loadSHGs());
-
   const openAdd = () => { setForm({ shgId: "", name: "", villageId: "", gpId: "", formationDate: "" }); setSelected(null); setModal("add"); };
   const openEdit = (s: SHG) => { setForm({ shgId: s.shgId, name: s.name, villageId: s.villageId, gpId: s.gpId, formationDate: s.formationDate }); setSelected(s); setModal("edit"); };
 
   const handleSave = () => {
     if (!form.name.trim()) return alert("कृपया नाम भरें");
-    saveSHG({ id: selected?.id || crypto.randomUUID(), ...form, name: form.name.trim() });
-    reload(); setModal(null);
+    const shg = { id: selected?.id || crypto.randomUUID(), ...form, name: form.name.trim() };
+    saveMutation.mutate(shg);
+    setModal(null);
   };
 
-  const handleDelete = (id: string) => { if (confirm("हटाएं?")) { deleteSHG(id); reload(); } };
+  const handleDelete = (id: string) => { 
+    if (confirm("हटाएं?")) { 
+      deleteMutation.mutate(id); 
+    } 
+  };
+
+  if (loadingSHGs || loadingVillages || loadingGPs) return <div className="p-8 text-center">लोड हो रहा है...</div>;
 
   return (
     <div className="master-page">
@@ -59,13 +78,15 @@ function SHGPage() {
                       {s.name}
                     </Link>
                   </td>
-                  <td>{findVillage(s.villageId)?.name || "—"}</td>
-                  <td>{findGP(s.gpId)?.name || "—"}</td>
+                  <td>{villages.find(v => v.id === s.villageId)?.name || "—"}</td>
+                  <td>{gps.find(g => g.id === s.gpId)?.name || "—"}</td>
                   <td>{s.formationDate || "—"}</td>
                   <td className="actions">
                     <button className="btn btn-primary btn-sm" onClick={() => navigate({ to: "/shg-dashboard", search: { id: s.id } })}>📊</button>
                     <button className="btn btn-secondary btn-sm" onClick={() => openEdit(s)}>✏️</button>
-                    <button className="btn btn-danger btn-sm" onClick={() => handleDelete(s.id)}>🗑️</button>
+                    <button className="btn btn-danger btn-sm" onClick={() => handleDelete(s.id)} disabled={deleteMutation.isPending}>
+                      {deleteMutation.isPending ? "⏳" : "🗑️"}
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -100,7 +121,9 @@ function SHGPage() {
             </div>
             <div className="modal-footer">
               <button className="btn btn-secondary" onClick={() => setModal(null)}>रद्द करें</button>
-              <button className="btn btn-primary" onClick={handleSave}>सुरक्षित करें</button>
+              <button className="btn btn-primary" onClick={handleSave} disabled={saveMutation.isPending}>
+                {saveMutation.isPending ? "सुरक्षित हो रहा है..." : "सुरक्षित करें"}
+              </button>
             </div>
           </div>
         </div>

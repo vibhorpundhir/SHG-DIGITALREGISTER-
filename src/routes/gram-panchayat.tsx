@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
-import { loadGPs, saveGP, deleteGP, type GramPanchayat } from "@/lib/store";
+import { useGPs, api, type GramPanchayat } from "@/lib/store";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import "../components/master-data.css";
 
 export const Route = createFileRoute("/gram-panchayat")({
@@ -14,7 +15,21 @@ export const Route = createFileRoute("/gram-panchayat")({
 });
 
 function GPPage() {
-  const [gps, setGps] = useState<GramPanchayat[]>(() => loadGPs());
+  const { data: gps = [], isLoading } = useGPs();
+  const queryClient = useQueryClient();
+  
+  const saveMutation = useMutation({
+    mutationFn: api.saveGP,
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["gps"] }); },
+    onError: (err) => alert("सेव करने में त्रुटि: " + err.message)
+  });
+  
+  const deleteMutation = useMutation({
+    mutationFn: api.deleteGP,
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["gps"] }); },
+    onError: (err) => alert("हटाने में त्रुटि: " + err.message)
+  });
+
   const [search, setSearch] = useState("");
   const [modal, setModal] = useState<null | "add" | "edit">(null);
   const [selected, setSelected] = useState<GramPanchayat | null>(null);
@@ -25,8 +40,6 @@ function GPPage() {
     const s = search.toLowerCase();
     return gps.filter((g) => g.name.toLowerCase().includes(s) || g.code.toLowerCase().includes(s));
   }, [gps, search]);
-
-  const reload = () => setGps(loadGPs());
 
   const openAdd = () => {
     setForm({ name: "", code: "" });
@@ -47,17 +60,17 @@ function GPPage() {
       name: form.name.trim(),
       code: form.code.trim(),
     };
-    saveGP(gp);
-    reload();
+    saveMutation.mutate(gp);
     setModal(null);
   };
 
   const handleDelete = (id: string) => {
     if (confirm("क्या आप इसे हटाना चाहते हैं?")) {
-      deleteGP(id);
-      reload();
+      deleteMutation.mutate(id);
     }
   };
+
+  if (isLoading) return <div className="p-8 text-center">लोड हो रहा है...</div>;
 
   return (
     <div className="master-page">
@@ -88,7 +101,9 @@ function GPPage() {
                   <td>{gp.code || "—"}</td>
                   <td className="actions">
                     <button className="btn btn-secondary btn-sm" onClick={() => openEdit(gp)}>✏️</button>
-                    <button className="btn btn-danger btn-sm" onClick={() => handleDelete(gp.id)}>🗑️</button>
+                    <button className="btn btn-danger btn-sm" onClick={() => handleDelete(gp.id)} disabled={deleteMutation.isPending}>
+                      {deleteMutation.isPending ? "⏳" : "🗑️"}
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -113,7 +128,9 @@ function GPPage() {
             </div>
             <div className="modal-footer">
               <button className="btn btn-secondary" onClick={() => setModal(null)}>रद्द करें</button>
-              <button className="btn btn-primary" onClick={handleSave}>सुरक्षित करें</button>
+              <button className="btn btn-primary" onClick={handleSave} disabled={saveMutation.isPending}>
+                {saveMutation.isPending ? "सुरक्षित हो रहा है..." : "सुरक्षित करें"}
+              </button>
             </div>
           </div>
         </div>

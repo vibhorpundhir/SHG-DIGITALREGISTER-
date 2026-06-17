@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { loadSavedRegisters, deleteRegister, formatMonthHindi, type SavedRegister } from "@/lib/store";
+import { useRegisters, api, formatMonthHindi, type SavedRegister } from "@/lib/store";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import "./master-data.css";
 
 type Props = {
@@ -8,8 +9,15 @@ type Props = {
 };
 
 export function RegisterManager({ onBack, onLoad }: Props) {
-  const [registers, setRegisters] = useState<SavedRegister[]>(() => loadSavedRegisters());
+  const { data: registers = [], isLoading } = useRegisters();
   const [filterSHG, setFilterSHG] = useState("");
+  const queryClient = useQueryClient();
+
+  const deleteMutation = useMutation({
+    mutationFn: api.deleteRegister,
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["registers"] }); },
+    onError: (err) => alert("हटाने में त्रुटि: " + err.message)
+  });
 
   const shgNames = useMemo(() => {
     const names = new Set<string>();
@@ -25,11 +33,12 @@ export function RegisterManager({ onBack, onLoad }: Props) {
 
   const handleDelete = (id: string) => {
     if (!confirm("क्या आप यह रजिस्टर हटाना चाहते हैं?")) return;
-    deleteRegister(id);
-    setRegisters(loadSavedRegisters());
+    deleteMutation.mutate(id);
   };
 
   const n = (v: number | ""): number => (v === "" ? 0 : Number(v) || 0);
+
+  if (isLoading) return <div className="p-8 text-center">लोड हो रहा है...</div>;
 
   return (
     <div className="master-page">
@@ -84,7 +93,9 @@ export function RegisterManager({ onBack, onLoad }: Props) {
                     <td style={{ fontSize: 11 }}>{new Date(reg.savedAt).toLocaleDateString("hi-IN")}</td>
                     <td className="actions">
                       <button className="btn btn-primary btn-sm" onClick={() => onLoad(reg)}>📂 खोलें</button>
-                      <button className="btn btn-danger btn-sm" onClick={() => handleDelete(reg.id)}>🗑️</button>
+                      <button className="btn btn-danger btn-sm" onClick={() => handleDelete(reg.id)} disabled={deleteMutation.isPending}>
+                        {deleteMutation.isPending ? "⏳" : "🗑️"}
+                      </button>
                     </td>
                   </tr>
                 );

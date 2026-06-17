@@ -9,8 +9,6 @@ import {
 } from "@tanstack/react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
-import { seedDemoData } from "@/lib/seed";
-import { clearAllData } from "@/lib/store";
 import { isLoggedIn, logOut, getCurrentUser } from "@/lib/auth";
 
 import appCss from "../styles.css?url";
@@ -76,6 +74,7 @@ function AppSidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
     { to: "/shg", label: "👥 SHG समूह", icon: "👥" },
     { to: "/member", label: "👤 सदस्य", icon: "👤" },
     { to: "/reports", label: "📊 रिपोर्ट्स", icon: "📊" },
+    { to: "/test-connection", label: "🔧 कनेक्शन टेस्ट", icon: "🔧" },
   ];
 
   return (
@@ -162,28 +161,6 @@ function AppSidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
         </nav>
 
         <div className="sidebar-footer">
-          <button
-            className="demo-btn"
-            onClick={() => {
-              if (confirm("यह सारा मौजूदा डेटा मिटाकर नया डेमो डेटा भरेगा। जारी रखें?")) {
-                seedDemoData();
-                window.location.reload();
-              }
-            }}
-          >
-            📦 डेमो डेटा लोड करें
-          </button>
-          <button
-            className="clear-btn"
-            onClick={() => {
-              if (confirm("⚠️ सारा डेटा हमेशा के लिए मिट जाएगा! जारी रखें?")) {
-                clearAllData();
-                window.location.reload();
-              }
-            }}
-          >
-            🗑️ सारा डेटा मिटाएं
-          </button>
           <button
             className="clear-btn"
             style={{
