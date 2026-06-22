@@ -2,13 +2,7 @@ import { initializeApp } from "firebase/app";
 import { getFirestore, collection, addDoc } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBgQRy6CfULEltXEF-sovQAPKgeFrocH0Q",
-  authDomain: "shg-digital-register.firebaseapp.com",
-  projectId: "shg-digital-register",
-  storageBucket: "shg-digital-register.firebasestorage.app",
-  messagingSenderId: "363406057822",
-  appId: "1:363406057822:web:ceeb226f2feb101109efcf",
-  measurementId: "G-9D4ZS000JH"
+ 
 };
 
 const app = initializeApp(firebaseConfig);
